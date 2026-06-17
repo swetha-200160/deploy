@@ -1,0 +1,43 @@
+# Core
+python-dotenv
+pandas
+numpy
+psycopg2-binary
+sqlalchemy
+
+# LLM & Agents
+groq
+langchain-groq
+langchain
+langchain-experimental
+langgraph
+
+# Embeddings & Vector Search
+sentence-transformers
+faiss-cpu        # replace with faiss-gpu (CUDA 11) or faiss-gpu-cu12 (CUDA 12) when USE_GPU=true
+rank-bm25
+
+# NLP / Text Analysis
+scikit-learn
+nltk
+gensim
+visions          # semantic type inference for DataFrames (used by TypeDetectionAgent)
+dateparser       # natural-language & exotic date string parsing
+
+# Visualization
+pyecharts
+
+# API
+fastapi
+uvicorn[standard]
+pydantic
+
+# Excel loader (existing)
+openpyxl
+xlrd
+
+# Utilities
+python-multipart
+httpx
+scipy
+plotly
