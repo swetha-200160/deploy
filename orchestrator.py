@@ -612,6 +612,10 @@ class Orchestrator:
         return list(pipeline_store.keys())
 
     def latest_run_id(self) -> str | None:
-        if not pipeline_store:
-            return None
-        return max(pipeline_store.keys(), key=lambda k: pipeline_store[k].get("started_at", ""))
+    if not pipeline_store:
+        return None
+
+    return max(
+        pipeline_store.keys(),
+        key=lambda k: pipeline_store[k].get("started_at", "")
+    )
