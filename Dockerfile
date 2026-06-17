@@ -44,4 +44,4 @@ ENV ROOT_PATH=${ROOT_PATH}
 ENV ENTRY_FILE=${ENTRY_FILE}
  
 # ---------- Start FastAPI ----------
-    CMD ["sh", "-c", "uvicorn ${ENTRY_FILE%.*}:app --host 0.0.0.0 --port ${PROJECT_PORT} --reload"]
+    CMD ["uvicorn", "orchestrator:app", "--host", "0.0.0.0", "--port", "8000"]
