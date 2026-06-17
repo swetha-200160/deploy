@@ -1,12 +1,11 @@
-FROM ai-base:V4
+FROM python:3.11-slim
  
 # Set working directory
 WORKDIR /app
  
-# ---------- Build-time Arguments ----------
-ARG PROJECT_NAME
-ARG PROJECT_PORT
-ARG ROOT_PATH
+ARG PROJECT_NAME=.
+ARG PROJECT_PORT=8000
+ARG ROOT_PATH=/4sight
 ARG NEED_FFMPEG=false
 ARG NEED_OCR=false
 ARG NEED_AI_LIBS=false
@@ -45,4 +44,4 @@ ENV ROOT_PATH=${ROOT_PATH}
 ENV ENTRY_FILE=${ENTRY_FILE}
  
 # ---------- Start FastAPI ----------
-CMD ["sh", "-c", "uvicorn ${ENTRY_FILE%.*}:app --host 0.0.0.0 --port ${PROJECT_PORT} --root-path ${ROOT_PATH}"]
+    CMD ["sh", "-c", "uvicorn ${ENTRY_FILE%.*}:app --host 0.0.0.0 --port ${PROJECT_PORT} --reload"]
