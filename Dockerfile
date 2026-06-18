@@ -44,4 +44,4 @@ ENV ROOT_PATH=${ROOT_PATH}
 ENV ENTRY_FILE=${ENTRY_FILE}
  
 # ---------- Start FastAPI ----------
-    CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--root-path", "/4sight"]
+CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PROJECT_PORT} --root-path ${ROOT_PATH}"]
