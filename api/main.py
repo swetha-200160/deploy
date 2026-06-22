@@ -173,9 +173,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="4sight v3 — Financial Data Analysis API",
+    title="4sight v3",
     version="3.0.0",
     lifespan=lifespan,
+    root_path="/4sight",
+)
     
 )
 
