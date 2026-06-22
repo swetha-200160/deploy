@@ -176,7 +176,7 @@ app = FastAPI(
     title="4sight v3 — Financial Data Analysis API",
     version="3.0.0",
     lifespan=lifespan,
-    root_path="/4sight",
+    
 )
 
 app.add_middleware(
