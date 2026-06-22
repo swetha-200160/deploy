@@ -179,7 +179,6 @@ app = FastAPI(
     lifespan=lifespan,
     root_path="/4sight",
 )
-)
 
 app.add_middleware(
     CORSMiddleware,
@@ -188,7 +187,6 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
-
 app.include_router(pipeline.router)
 app.include_router(agents.router)
 app.include_router(charts.router)
