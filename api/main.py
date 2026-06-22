@@ -178,7 +178,8 @@ app = FastAPI(
     version="3.0.0",
     lifespan=lifespan,
     root_path="/4sight",
-    root_path_in_servers=True,
+    docs_url="/docs",
+    openapi_url="/openapi.json"
 )
 
 app.add_middleware(
