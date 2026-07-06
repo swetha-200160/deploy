@@ -217,3 +217,4 @@ if __name__ == "__main__":
         reload=config.api_reload,
         reload_excludes=["reports/*", "charts/*", "faiss_index/*"],
     )
+print("🔥 Bind mount is working")
