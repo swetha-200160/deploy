@@ -171,7 +171,7 @@ async def lifespan(app: FastAPI):
         pass
     log.info("4sight v3 API shutting down.")
 
-
+print("🔥 MOUNT WORKING")
 app = FastAPI(
     title="4sight v3",
     version="3.0.0",
@@ -217,4 +217,4 @@ if __name__ == "__main__":
         reload=config.api_reload,
         reload_excludes=["reports/*", "charts/*", "faiss_index/*"],
     )
-print("🔥 Bind mount is working")
+print("🔥 BIND MOUNT WORKING")
