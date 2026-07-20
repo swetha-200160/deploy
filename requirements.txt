@@ -41,3 +41,8 @@ python-multipart
 httpx
 scipy
 plotly
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-instrumentation-fastapi
+prometheus-client
+opentelemetry-exporter-prometheus
