@@ -9,6 +9,9 @@ from datetime import datetime
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.middleware.cors import CORSMiddleware
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.resources import Resource
 
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
@@ -175,7 +178,17 @@ async def lifespan(app: FastAPI):
         pass
     log.info("4sight v3 API shutting down.")
 
-print("🔥 MOUNT WORKING")
+resource = Resource.create(
+    {
+        "service.name": "4sight-service"
+    }
+)
+
+trace.set_tracer_provider(
+    TracerProvider(resource=resource)
+)
+
+tracer = trace.get_tracer(__name__)
 app = FastAPI(
     title="4sight v3",
     version="3.0.0",
