@@ -10,6 +10,8 @@ from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.middleware.cors import CORSMiddleware
 
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
 from config import get_config
 from api.routers import pipeline, agents, charts, insights, story as story_router, query as query_router, delete as delete_router
 
@@ -183,6 +185,13 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json",
 )
+
+
+# OpenTelemetry instrumentation
+FastAPIInstrumentor.instrument_app(app)
+
+
+# Prometheus metrics endpoint
 Instrumentator().instrument(app).expose(app)
 app.add_middleware(
     CORSMiddleware,
