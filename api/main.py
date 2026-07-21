@@ -187,6 +187,7 @@ resource = Resource.create(
 )
 
 provider = TracerProvider(resource=resource)
+
 trace.set_tracer_provider(provider)
 
 otlp_exporter = OTLPSpanExporter(
@@ -197,8 +198,12 @@ otlp_exporter = OTLPSpanExporter(
 provider.add_span_processor(
     BatchSpanProcessor(otlp_exporter)
 )
+
 app = FastAPI(
-    title="4sight v3",
+    title="4sight v3"
+)
+
+FastAPIInstrumentor.instrument_app(app),
     version="3.0.0",
     lifespan=lifespan,
     root_path="/4sight",
