@@ -199,13 +199,12 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
+# Prometheus metrics endpoint
+Instrumentator().instrument(app).expose(app)
 
 # OpenTelemetry instrumentation
 FastAPIInstrumentor.instrument_app(app)
 
-
-# Prometheus metrics endpoint
-Instrumentator().instrument(app).expose(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.cors_origins,
