@@ -14,6 +14,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.resources import Resource
 
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 
 from config import get_config
 from api.routers import pipeline, agents, charts, insights, story as story_router, query as query_router, delete as delete_router
@@ -184,11 +186,17 @@ resource = Resource.create(
     }
 )
 
-trace.set_tracer_provider(
-    TracerProvider(resource=resource)
+provider = TracerProvider(resource=resource)
+trace.set_tracer_provider(provider)
+
+otlp_exporter = OTLPSpanExporter(
+    endpoint="opentelemetry-collector:4317",
+    insecure=True,
 )
 
-tracer = trace.get_tracer(__name__)
+provider.add_span_processor(
+    BatchSpanProcessor(otlp_exporter)
+)
 app = FastAPI(
     title="4sight v3",
     version="3.0.0",
