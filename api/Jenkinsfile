@@ -4,11 +4,7 @@ pipeline {
     environment {
         APP_NAME = '4sight-app'
         CONTAINER_NAME = '4sight-container'
-        NGINX_CONTAINER = 'nginx-container'
         APP_PORT = '8010'
-
-        OTEL_EXPORTER_OTLP_ENDPOINT = 'http://otel-collector:4317'
-        OTEL_SERVICE_NAME = '4sight-service'
     }
 
     stages {
@@ -32,37 +28,49 @@ pipeline {
             }
         }
 
-        stage('Stop Old App Container') {
+        stage('Stop Old Container') {
             steps {
                 bat 'docker rm -f %CONTAINER_NAME% || exit 0'
             }
         }
 
-        stage('Run 4sight Container with OTEL') {
+        stage('Run 4sight Container') {
             steps {
                 bat '''
                 docker run -d --name %CONTAINER_NAME% ^
-                  --network monitoring ^
                   -p %APP_PORT%:%APP_PORT% ^
-                  -e OTEL_EXPORTER_OTLP_ENDPOINT=%OTEL_EXPORTER_OTLP_ENDPOINT% ^
-                  -e OTEL_SERVICE_NAME=%OTEL_SERVICE_NAME% ^
                   %APP_NAME%
                 '''
             }
         }
 
-        stage('Check App Logs') {
+        stage('Health Check') {
             steps {
-                bat 'docker logs %CONTAINER_NAME% --tail 50'
+                bat 'curl http://localhost:8010/docs'
             }
         }
 
-        stage('Deploy Nginx') {
+        stage('Verify Metrics') {
             steps {
-                bat 'docker rm -f %NGINX_CONTAINER% || exit 0'
+                bat 'curl http://localhost:8010/metrics'
+            }
+        }
 
-                bat '''
-                docker run -d --name %NGINX_CONTAINER% ^
-                  --network monitoring ^
-                  -p 80:80 ^
-                  -v 
+        stage('List Containers') {
+            steps {
+                bat 'docker ps'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '4sight deployed successfully.'
+        }
+
+        failure {
+            echo 'Pipeline failed.'
+            bat 'docker logs %CONTAINER_NAME%'
+        }
+    }
+}
