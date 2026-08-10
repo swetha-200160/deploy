@@ -7,7 +7,6 @@ environment {
     CONTAINER_NAME = '4sight-container'
     NGINX_CONTAINER = 'nginx-container'
     APP_PORT = '8010'
-
     OTEL_EXPORTER_OTLP_ENDPOINT = 'http://otel-collector:4317'
     OTEL_SERVICE_NAME = '4sight-service'
 }
@@ -15,29 +14,61 @@ environment {
 stages {
 
     stage('Show Workspace') {
-    steps {
-        bat 'echo Current workspace:'
-        bat 'cd'
-        bat 'echo Files:'
-        bat 'dir'
+        steps {
+            bat '''
+                echo ==============================
+                echo Jenkins Windows Workspace
+                echo ==============================
+                echo Workspace: %WORKSPACE%
+                cd
+                dir
+            '''
+        }
     }
-}
+
+    stage('Check Tools') {
+        steps {
+            bat '''
+                echo Checking Git...
+                git --version
+
+                echo Checking Docker...
+                docker --version
+
+                echo Checking Docker containers...
+                docker ps
+            '''
+        }
+    }
 
     stage('Build Docker Image') {
         steps {
-            bat 'docker build -t %APP_NAME% .'
+            bat '''
+                echo Building 4sight Docker image...
+                docker build -t %APP_NAME% .
+            '''
         }
     }
 
     stage('Stop Old App Container') {
         steps {
-            bat 'docker rm -f %CONTAINER_NAME% 2>nul || echo Container does not exist'
+            bat '''
+                echo Stopping old 4sight container...
+                docker rm -f %CONTAINER_NAME% 2>nul
+                if %ERRORLEVEL% EQU 0 (
+                    echo Old container removed.
+                ) else (
+                    echo No old container found.
+                )
+            '''
         }
     }
 
-    stage('Run 4sight Container with OTEL') {
+    stage('Run 4sight Container') {
         steps {
             bat '''
+                echo Starting 4sight container...
+
                 docker run -d ^
                   --name %CONTAINER_NAME% ^
                   --network monitoring ^
@@ -51,19 +82,34 @@ stages {
 
     stage('Check App Logs') {
         steps {
-            bat 'docker logs %CONTAINER_NAME% --tail 50'
+            bat '''
+                echo ==============================
+                echo 4sight Application Logs
+                echo ==============================
+                docker logs %CONTAINER_NAME% --tail 50
+            '''
         }
     }
 
     stage('Stop Old Nginx') {
         steps {
-            bat 'docker rm -f %NGINX_CONTAINER% 2>nul || echo Nginx container does not exist'
+            bat '''
+                echo Stopping old Nginx container...
+                docker rm -f %NGINX_CONTAINER% 2>nul
+                if %ERRORLEVEL% EQU 0 (
+                    echo Old Nginx container removed.
+                ) else (
+                    echo No old Nginx container found.
+                )
+            '''
         }
     }
 
     stage('Deploy Nginx') {
         steps {
             bat '''
+                echo Starting Nginx...
+
                 docker run -d ^
                   --name %NGINX_CONTAINER% ^
                   --network monitoring ^
@@ -76,38 +122,64 @@ stages {
 
     stage('Verify Nginx') {
         steps {
-            bat 'docker logs %NGINX_CONTAINER% --tail 20'
-            bat 'curl -I http://localhost:8011/4sight/docs'
+            bat '''
+                echo ==============================
+                echo Nginx Logs
+                echo ==============================
+                docker logs %NGINX_CONTAINER% --tail 20
+
+                echo ==============================
+                echo Testing Nginx
+                echo ==============================
+                curl -I http://localhost:8011/4sight/docs
+            '''
         }
     }
 
     stage('Health Check') {
         steps {
-            bat 'curl http://localhost:8010/docs'
+            bat '''
+                echo Testing 4sight application...
+                curl http://localhost:8010/docs
+            '''
         }
     }
 
     stage('Verify Prometheus Metrics') {
         steps {
-            bat 'curl http://localhost:8010/metrics'
+            bat '''
+                echo Testing Prometheus metrics...
+                curl http://localhost:8010/metrics
+            '''
         }
     }
 
     stage('Verify Grafana') {
         steps {
-            bat 'curl http://localhost:3000/api/health'
+            bat '''
+                echo Testing Grafana...
+                curl http://localhost:3000/api/health
+            '''
         }
     }
 
     stage('Verify OTEL Collector') {
         steps {
-            bat 'curl http://localhost:8889/metrics'
+            bat '''
+                echo Testing OpenTelemetry Collector...
+                curl http://localhost:8889/metrics
+            '''
         }
     }
 
     stage('List Running Containers') {
         steps {
-            bat 'docker ps'
+            bat '''
+                echo ==============================
+                echo Running Docker Containers
+                echo ==============================
+                docker ps
+            '''
         }
     }
 }
@@ -115,14 +187,21 @@ stages {
 post {
 
     success {
-        echo 'SUCCESS: 4sight deployed with Nginx, Prometheus, Grafana, and OpenTelemetry.'
+        echo 'SUCCESS: 4sight deployed successfully with Nginx, Prometheus, Grafana and OpenTelemetry.'
     }
 
     failure {
         echo 'FAILURE: Collecting container logs...'
 
-        bat 'docker logs %CONTAINER_NAME% --tail 100 2>nul || echo 4sight container not found'
-        bat 'docker logs %NGINX_CONTAINER% --tail 100 2>nul || echo nginx container not found'
+        bat '''
+            echo 4sight container logs:
+            docker logs %CONTAINER_NAME% --tail 100 2>nul
+        '''
+
+        bat '''
+            echo Nginx container logs:
+            docker logs %NGINX_CONTAINER% --tail 100 2>nul
+        '''
     }
 
     always {
