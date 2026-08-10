@@ -11,7 +11,24 @@ pipeline {
         OTEL_EXPORTER_OTLP_ENDPOINT = 'http://otel-collector:4317'
         OTEL_SERVICE_NAME = '4sight-service'
     }
-
+stage('Check Windows Environment') {
+    steps {
+        bat 'echo ===== WINDOWS ====='
+        bat 'echo %OS%'
+        bat 'echo COMSPEC=%COMSPEC%'
+        bat 'where cmd'
+        bat 'echo ===== JAVA ====='
+        bat 'java -version'
+        bat 'echo ===== GIT ====='
+        bat 'where git'
+        bat 'git --version'
+        bat 'echo ===== DOCKER ====='
+        bat 'where docker'
+        bat 'docker --version'
+        bat 'echo ===== SH ====='
+        bat 'where sh'
+    }
+}
     stages {
 
         stage('Checkout') {
