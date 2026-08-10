@@ -15,13 +15,13 @@ environment {
 stages {
 
     stage('Show Workspace') {
-        steps {
-            bat 'echo Current workspace:'
-            bat 'cd'
-            bat 'echo Files:'
-            bat 'dir'
-        }
+    steps {
+        bat 'echo Current workspace:'
+        bat 'cd'
+        bat 'echo Files:'
+        bat 'dir'
     }
+}
 
     stage('Build Docker Image') {
         steps {
