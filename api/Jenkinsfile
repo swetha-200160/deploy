@@ -34,7 +34,7 @@ pipeline {
 
         stage('Stop Old App Container') {
             steps {
-                bat 'docker rm -f %CONTAINER_NAME% || exit 0'
+                bat 'docker rm -f %CONTAINER_NAME% || ver > nul'
             }
         }
 
@@ -59,7 +59,7 @@ pipeline {
 
         stage('Deploy Nginx') {
             steps {
-                bat 'docker rm -f %NGINX_CONTAINER% || exit 0'
+                bat 'docker rm -f %NGINX_CONTAINER% || ver > nul'
 
                 bat '''
                 docker run -d --name %NGINX_CONTAINER% ^
