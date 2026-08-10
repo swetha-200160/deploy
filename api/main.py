@@ -12,9 +12,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.resources import Resource
+logging.basicConfig(level=logging.DEBUG)
+print("========== API MAIN STARTED ==========")
 
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.export import (
+    BatchSpanProcessor,
+    SimpleSpanProcessor,
+    ConsoleSpanExporter,
+)
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 
 from config import get_config
@@ -180,6 +186,8 @@ async def lifespan(app: FastAPI):
         pass
     log.info("4sight v3 API shutting down.")
 
+
+# OpenTelemetry setup
 resource = Resource.create(
     {
         "service.name": "4sight-service"
@@ -194,16 +202,25 @@ otlp_exporter = OTLPSpanExporter(
     endpoint="opentelemetry-collector:4317",
     insecure=True,
 )
+provider.add_span_processor(
+    SimpleSpanProcessor(ConsoleSpanExporter())
+)
 
 provider.add_span_processor(
     BatchSpanProcessor(otlp_exporter)
 )
 
-app = FastAPI(
-    title="4sight v3"
-)
+# ---------- Add this ----------
+tracer = trace.get_tracer(__name__)
 
-FastAPIInstrumentor.instrument_app(app),
+with tracer.start_as_current_span("manual-test-span"):
+    print("Created manual span")
+
+provider.force_flush()
+# ------------------------------
+
+app = FastAPI(
+    title="4sight v3",
     version="3.0.0",
     lifespan=lifespan,
     root_path="/4sight",
@@ -212,10 +229,7 @@ FastAPIInstrumentor.instrument_app(app),
     openapi_url="/openapi.json",
 )
 
-# Prometheus metrics endpoint
 Instrumentator().instrument(app).expose(app)
-
-# OpenTelemetry instrumentation
 FastAPIInstrumentor.instrument_app(app)
 
 app.add_middleware(
