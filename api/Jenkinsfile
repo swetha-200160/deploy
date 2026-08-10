@@ -13,32 +13,39 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
+        // STEP 1 - Checkout source code
+        stage('Step 1 - Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Show Workspace') {
+        // STEP 2 - Show workspace files
+        stage('Step 2 - Show Workspace') {
             steps {
+                bat 'echo Current workspace:'
                 bat 'cd'
+                bat 'echo Files:'
                 bat 'dir'
             }
         }
 
-        stage('Build Docker Image') {
+        // STEP 3 - Build Docker image
+        stage('Step 3 - Build Docker Image') {
             steps {
                 bat 'docker build -t %APP_NAME% .'
             }
         }
 
-        stage('Stop Old App Container') {
+        // STEP 4 - Remove old application container
+        stage('Step 4 - Stop Old App Container') {
             steps {
                 bat 'docker rm -f %CONTAINER_NAME% || ver > nul'
             }
         }
 
-        stage('Run 4sight Container with OTEL') {
+        // STEP 5 - Run 4sight container with OTEL
+        stage('Step 5 - Run 4sight Container with OTEL') {
             steps {
                 bat '''
                 docker run -d --name %CONTAINER_NAME% ^
@@ -51,16 +58,23 @@ pipeline {
             }
         }
 
-        stage('Check App Logs') {
+        // STEP 6 - Check application logs
+        stage('Step 6 - Check App Logs') {
             steps {
                 bat 'docker logs %CONTAINER_NAME% --tail 50'
             }
         }
 
-        stage('Deploy Nginx') {
+        // STEP 7 - Remove old Nginx container
+        stage('Step 7 - Stop Old Nginx') {
             steps {
                 bat 'docker rm -f %NGINX_CONTAINER% || ver > nul'
+            }
+        }
 
+        // STEP 8 - Deploy Nginx
+        stage('Step 8 - Deploy Nginx') {
+            steps {
                 bat '''
                 docker run -d --name %NGINX_CONTAINER% ^
                   --network monitoring ^
@@ -71,38 +85,44 @@ pipeline {
             }
         }
 
-        stage('Verify Nginx') {
+        // STEP 9 - Verify Nginx
+        stage('Step 9 - Verify Nginx') {
             steps {
                 bat 'docker logs %NGINX_CONTAINER% --tail 20'
                 bat 'curl -I http://localhost/4sight/docs'
             }
         }
 
-        stage('Health Check') {
+        // STEP 10 - Application health check
+        stage('Step 10 - Health Check') {
             steps {
                 bat 'curl http://localhost:8010/docs'
             }
         }
 
-        stage('Verify Prometheus Metrics') {
+        // STEP 11 - Verify Prometheus metrics
+        stage('Step 11 - Verify Prometheus Metrics') {
             steps {
                 bat 'curl http://localhost:8010/metrics'
             }
         }
 
-        stage('Verify Grafana') {
+        // STEP 12 - Verify Grafana
+        stage('Step 12 - Verify Grafana') {
             steps {
                 bat 'curl http://localhost:3000/api/health'
             }
         }
 
-        stage('Verify OTEL Collector') {
+        // STEP 13 - Verify OTEL Collector
+        stage('Step 13 - Verify OTEL Collector') {
             steps {
                 bat 'curl http://localhost:8889/metrics'
             }
         }
 
-        stage('List Running Containers') {
+        // STEP 14 - List running containers
+        stage('Step 14 - List Running Containers') {
             steps {
                 bat 'docker ps'
             }
@@ -112,11 +132,11 @@ pipeline {
     post {
 
         success {
-            echo '4sight deployed successfully with Nginx, Prometheus, Grafana, and OpenTelemetry.'
+            echo 'SUCCESS: 4sight deployed with Nginx, Prometheus, Grafana, and OpenTelemetry.'
         }
 
         failure {
-            echo 'Pipeline failed. Collecting logs...'
+            echo 'FAILURE: Collecting container logs...'
 
             bat 'docker logs %CONTAINER_NAME% --tail 100'
             bat 'docker logs %NGINX_CONTAINER% --tail 100'
