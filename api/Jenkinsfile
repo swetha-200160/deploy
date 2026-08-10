@@ -3,491 +3,213 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME        = '4sight-app'
-        CONTAINER_NAME  = '4sight-container'
+        APP_NAME = '4sight-app'
+        CONTAINER_NAME = '4sight-container'
         NGINX_CONTAINER = 'nginx-container'
+        APP_PORT = '8010'
 
-        APP_PORT        = '8010'
-        NGINX_PORT      = '8011'
-
-        DOCKER_NETWORK  = 'monitoring'
-
-        OTEL_SERVICE_NAME          = '4sight-service'
         OTEL_EXPORTER_OTLP_ENDPOINT = 'http://otel-collector:4317'
+        OTEL_SERVICE_NAME = '4sight-service'
     }
 
     stages {
 
-        /*
-         * ============================================================
-         * 1. SHOW WORKSPACE
-         * ============================================================
-         */
-        stage('Show Workspace') {
+        stage('Checkout') {
             steps {
-                bat '''
-                    echo ==========================================
-                    echo Jenkins Windows Workspace
-                    echo ==========================================
-
-                    echo WORKSPACE = %WORKSPACE%
-
-                    echo.
-                    echo Current Directory:
-                    cd
-
-                    echo.
-                    echo Workspace Files:
-                    dir
-                '''
+                checkout scm
             }
         }
 
-
-        /*
-         * ============================================================
-         * 2. CHECK TOOLS
-         * ============================================================
-         */
         stage('Check Tools') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo Checking Required Tools
-                    echo ==========================================
-
-                    echo.
-                    echo Git:
+                    echo Checking Git...
                     git --version
 
-                    echo.
-                    echo Docker:
+                    echo Checking Docker...
                     docker --version
 
-                    echo.
-                    echo Docker Info:
-                    docker info
-
-                    echo.
-                    echo Running Containers:
+                    echo Checking Docker containers...
                     docker ps
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 3. CHECK / CREATE DOCKER NETWORK
-         * ============================================================
-         */
-        stage('Check Docker Network') {
-            steps {
-                bat '''
-                    echo ==========================================
-                    echo Checking Docker Network
-                    echo ==========================================
-
-                    docker network inspect %DOCKER_NETWORK% >nul 2>&1
-
-                    if %ERRORLEVEL% EQU 0 (
-                        echo Docker network "%DOCKER_NETWORK%" already exists.
-                    ) else (
-                        echo Docker network "%DOCKER_NETWORK%" does not exist.
-                        echo Creating network...
-
-                        docker network create %DOCKER_NETWORK%
-
-                        if %ERRORLEVEL% NEQ 0 (
-                            echo ERROR: Failed to create Docker network.
-                            exit /b 1
-                        )
-
-                        echo Docker network created successfully.
-                    )
-                '''
-            }
-        }
-
-
-        /*
-         * ============================================================
-         * 4. BUILD DOCKER IMAGE
-         * ============================================================
-         */
         stage('Build Docker Image') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo Building 4sight Docker Image
-                    echo ==========================================
-
+                    echo Building 4sight Docker Image...
                     docker build -t %APP_NAME% .
-
-                    if %ERRORLEVEL% NEQ 0 (
-                        echo ERROR: Docker image build failed.
-                        exit /b 1
-                    )
-
-                    echo.
-                    echo Docker image built successfully.
-
-                    echo.
-                    echo Docker Image:
-                    docker images %APP_NAME%
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 5. STOP OLD 4SIGHT CONTAINER
-         * ============================================================
-         */
         stage('Stop Old App Container') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo Removing Old 4sight Container
-                    echo ==========================================
+                    echo Stopping old 4sight container...
 
-                    docker rm -f %CONTAINER_NAME% 2>nul
+                    docker rm -f %CONTAINER_NAME% >nul 2>&1
 
                     echo Old container removed if it existed.
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 6. RUN 4SIGHT CONTAINER
-         * ============================================================
-         */
-        stage('Run 4sight Container with OTEL') {
+        stage('Run 4sight Container') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo Starting 4sight Container
-                    echo ==========================================
+                    echo Starting 4sight container...
 
                     docker run -d ^
                       --name %CONTAINER_NAME% ^
-                      --network %DOCKER_NETWORK% ^
+                      --network monitoring ^
                       -p %APP_PORT%:%APP_PORT% ^
-                      -e OTEL_SERVICE_NAME=%OTEL_SERVICE_NAME% ^
                       -e OTEL_EXPORTER_OTLP_ENDPOINT=%OTEL_EXPORTER_OTLP_ENDPOINT% ^
+                      -e OTEL_SERVICE_NAME=%OTEL_SERVICE_NAME% ^
                       %APP_NAME%
-
-                    if %ERRORLEVEL% NEQ 0 (
-                        echo ERROR: Failed to start 4sight container.
-                        exit /b 1
-                    )
-
-                    echo.
-                    echo 4sight container started successfully.
-
-                    echo.
-                    echo Container Status:
-                    docker ps --filter "name=%CONTAINER_NAME%"
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 7. CHECK 4SIGHT LOGS
-         * ============================================================
-         */
         stage('Check App Logs') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo 4sight Application Logs
-                    echo ==========================================
+                    echo Checking 4sight application logs...
 
                     docker logs %CONTAINER_NAME% --tail 50
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 8. STOP OLD NGINX
-         * ============================================================
-         */
         stage('Stop Old Nginx') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo Removing Old Nginx Container
-                    echo ==========================================
+                    echo Stopping old Nginx container...
 
-                    docker rm -f %NGINX_CONTAINER% 2>nul
+                    docker rm -f %NGINX_CONTAINER% >nul 2>&1
 
                     echo Old Nginx container removed if it existed.
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 9. DEPLOY NGINX
-         * ============================================================
-         */
         stage('Deploy Nginx') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo Checking nginx.conf
-                    echo ==========================================
-
-                    if not exist "%WORKSPACE%\\nginx.conf" (
-                        echo ERROR: nginx.conf not found.
-                        echo Expected file:
-                        echo %WORKSPACE%\\nginx.conf
-                        exit /b 1
-                    )
-
-                    echo nginx.conf found.
-
-                    echo.
-                    echo ==========================================
-                    echo Starting Nginx
-                    echo ==========================================
+                    echo Starting Nginx...
 
                     docker run -d ^
                       --name %NGINX_CONTAINER% ^
-                      --network %DOCKER_NETWORK% ^
-                      -p %NGINX_PORT%:80 ^
+                      --network monitoring ^
+                      -p 8011:80 ^
                       -v "%WORKSPACE%\\nginx.conf:/etc/nginx/conf.d/default.conf:ro" ^
                       nginx:latest
-
-                    if %ERRORLEVEL% NEQ 0 (
-                        echo ERROR: Failed to start Nginx.
-                        exit /b 1
-                    )
-
-                    echo.
-                    echo Nginx started successfully.
-
-                    echo.
-                    echo Nginx Container:
-                    docker ps --filter "name=%NGINX_CONTAINER%"
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 10. VERIFY NGINX
-         * ============================================================
-         */
         stage('Verify Nginx') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo Nginx Logs
-                    echo ==========================================
+                    echo Checking Nginx container...
 
-                    docker logs %NGINX_CONTAINER% --tail 30
+                    docker ps --filter "name=%NGINX_CONTAINER%"
 
-                    echo.
-                    echo ==========================================
-                    echo Testing Nginx /4sight/docs
-                    echo ==========================================
+                    echo Checking Nginx logs...
 
-                    curl.exe -I http://localhost:%NGINX_PORT%/4sight/docs
+                    docker logs %NGINX_CONTAINER% --tail 20
 
-                    if %ERRORLEVEL% NEQ 0 (
-                        echo ERROR: Nginx verification failed.
-                        exit /b 1
-                    )
+                    echo Testing Nginx...
 
-                    echo.
-                    echo Nginx verification successful.
+                    curl -I http://localhost:8011/4sight/docs
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 11. APPLICATION HEALTH CHECK
-         * ============================================================
-         */
         stage('Health Check') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo Testing 4sight Application
-                    echo ==========================================
+                    echo Checking 4sight application...
 
-                    curl.exe -f http://localhost:%APP_PORT%/docs
-
-                    if %ERRORLEVEL% NEQ 0 (
-                        echo ERROR: 4sight health check failed.
-                        exit /b 1
-                    )
-
-                    echo.
-                    echo 4sight application is healthy.
+                    curl -f http://localhost:8010/docs
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 12. PROMETHEUS METRICS
-         * ============================================================
-         */
         stage('Verify Prometheus Metrics') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo Testing Prometheus Metrics
-                    echo ==========================================
+                    echo Checking Prometheus metrics...
 
-                    curl.exe -f http://localhost:%APP_PORT%/metrics
-
-                    if %ERRORLEVEL% NEQ 0 (
-                        echo ERROR: Prometheus metrics endpoint failed.
-                        exit /b 1
-                    )
-
-                    echo.
-                    echo Prometheus metrics are available.
+                    curl -f http://localhost:8010/metrics
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 13. GRAFANA
-         * ============================================================
-         */
         stage('Verify Grafana') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo Testing Grafana
-                    echo ==========================================
+                    echo Checking Grafana...
 
-                    curl.exe -f http://localhost:3000/api/health
-
-                    if %ERRORLEVEL% NEQ 0 (
-                        echo ERROR: Grafana health check failed.
-                        exit /b 1
-                    )
-
-                    echo.
-                    echo Grafana is healthy.
+                    curl -f http://localhost:3000/api/health
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 14. OTEL COLLECTOR
-         * ============================================================
-         */
         stage('Verify OTEL Collector') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo Testing OpenTelemetry Collector
-                    echo ==========================================
+                    echo Checking OpenTelemetry Collector...
 
-                    curl.exe -f http://localhost:8889/metrics
-
-                    if %ERRORLEVEL% NEQ 0 (
-                        echo ERROR: OTEL Collector verification failed.
-                        exit /b 1
-                    )
-
-                    echo.
-                    echo OTEL Collector is healthy.
+                    curl -f http://localhost:8889/metrics
                 '''
             }
         }
 
-
-        /*
-         * ============================================================
-         * 15. FINAL CONTAINER LIST
-         * ============================================================
-         */
         stage('List Running Containers') {
             steps {
                 bat '''
-                    echo ==========================================
-                    echo All Docker Containers
-                    echo ==========================================
+                    echo Running Docker containers:
 
-                    docker ps -a
-
-                    echo.
-                    echo ==========================================
-                    echo Monitoring Network
-                    echo ==========================================
-
-                    docker network inspect %DOCKER_NETWORK%
+                    docker ps
                 '''
             }
         }
     }
 
-
-    /*
-     * ================================================================
-     * POST ACTIONS
-     * ================================================================
-     */
     post {
 
         success {
-            echo '================================================'
-            echo 'SUCCESS'
-            echo '4sight deployment completed successfully.'
-            echo 'Nginx + Prometheus + Grafana + OTEL verified.'
-            echo '================================================'
+            echo 'SUCCESS: 4sight deployed successfully.'
+            echo 'Nginx, Prometheus, Grafana and OpenTelemetry verification completed.'
         }
 
         failure {
-            echo '================================================'
-            echo 'PIPELINE FAILED'
-            echo 'Collecting Docker logs...'
-            echo '================================================'
+            echo 'FAILURE: Pipeline failed.'
 
             bat '''
-                echo.
-                echo ==========================================
-                echo 4sight Container Logs
-                echo ==========================================
-
-                docker logs %CONTAINER_NAME% --tail 100 2>nul
-
-                echo.
-                echo ==========================================
-                echo Nginx Container Logs
-                echo ==========================================
-
-                docker logs %NGINX_CONTAINER% --tail 100 2>nul
-
-                echo.
-                echo ==========================================
-                echo All Docker Containers
-                echo ==========================================
+                echo ==============================
+                echo Docker Containers
+                echo ==============================
 
                 docker ps -a
+            '''
+
+            bat '''
+                echo ==============================
+                echo 4sight Container Logs
+                echo ==============================
+
+                docker logs %CONTAINER_NAME% --tail 100 2>nul
+            '''
+
+            bat '''
+                echo ==============================
+                echo Nginx Container Logs
+                echo ==============================
+
+                docker logs %NGINX_CONTAINER% --tail 100 2>nul
             '''
         }
 
