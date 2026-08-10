@@ -60,10 +60,14 @@ pipeline {
             }
         }
 
-        stage('Deploy Nginx') {
+        stage('Stop Old Nginx') {
             steps {
                 bat 'docker rm -f %NGINX_CONTAINER% || ver > nul'
+            }
+        }
 
+        stage('Deploy Nginx') {
+            steps {
                 bat '''
                 docker run -d --name %NGINX_CONTAINER% ^
                   --network monitoring ^
@@ -115,11 +119,11 @@ pipeline {
     post {
 
         success {
-            echo '4sight deployed successfully with Nginx, Prometheus, Grafana, and OpenTelemetry.'
+            echo 'SUCCESS: 4sight deployed with Nginx, Prometheus, Grafana, and OpenTelemetry.'
         }
 
         failure {
-            echo 'Pipeline failed. Collecting logs...'
+            echo 'FAILURE: Collecting container logs...'
 
             bat 'docker logs %CONTAINER_NAME% --tail 100'
             bat 'docker logs %NGINX_CONTAINER% --tail 100'
